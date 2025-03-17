@@ -1,0 +1,82 @@
+document.addEventListener('DOMContentLoaded', function () {
+    const captureBtn = document.getElementById('captureBtn');
+    const screenshotImg = document.getElementById('screenshotImg');
+    let isDragging = false;
+    let startX, startY;
+    let translateX = 0;
+    let translateY = 0;
+    let scale = 1;
+
+    captureBtn.addEventListener('click', async function () {
+        try {
+            const stream = await navigator.mediaDevices.getDisplayMedia({
+                video: true,
+                audio: false
+            });
+
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            video.style.display = 'none';
+            document.body.appendChild(video);
+
+            await video.play();
+
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const dataURL = canvas.toDataURL('image/png');
+            screenshotImg.src = dataURL;
+
+            stream.getTracks().forEach(track => track.stop());
+            document.body.removeChild(video);
+
+            initDragAndZoom();
+        } catch (err) {
+            console.error('截图失败', err);
+        }
+    });
+    // 初始化移动和缩放功能
+    function initDragAndZoom() {
+        let lastScale = scale;
+        screenshotImg.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX - translateX;
+            startY = e.clientY - translateY;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                translateX = e.clientX - startX;
+                translateY = e.clientY - startY;
+                updatePosition();
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        screenshotImg.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY < 0? 1.1 : 0.9;
+            scale *= delta;
+            scale = Math.max(0.1, Math.min(5, scale)); // 限制缩放范围
+            if (lastScale!== scale) {
+                updateScale();
+                lastScale = scale;
+            }
+        });
+    }
+
+    function updatePosition() {
+        screenshotImg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+    }
+
+    function updateScale() {
+        screenshotImg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+    }
+});
