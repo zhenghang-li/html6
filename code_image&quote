@@ -1,0 +1,92 @@
+// 定义 <image-box> 标签
+class ImageBox extends HTMLElement {
+    constructor() {
+        super();
+        this.attachShadow({ mode: 'open' });
+    }
+
+    connectedCallback() {
+        const imgSrcs = this.getAttribute('img-srcs').split(',');
+        const width = this.getAttribute('width') || 'auto';
+        const height = this.getAttribute('height') || 'auto';
+
+        const galleryDiv = document.createElement('div');
+        galleryDiv.style.width = width;
+        galleryDiv.style.height = height;
+
+        const imgElement = document.createElement('img');
+        imgElement.src = imgSrcs[0].trim();
+        galleryDiv.appendChild(imgElement);
+
+        this.shadowRoot.appendChild(galleryDiv);
+
+        switchImages(this);
+    }
+}
+
+// 定义 <quote-box> 标签
+class QuoteBox extends HTMLElement {
+    constructor() {
+        super();
+        this.attachShadow({ mode: 'open' });
+    }
+
+    connectedCallback() {
+        const author = this.getAttribute('author');
+        const source = this.getAttribute('source');
+        const quoteText = this.textContent;
+
+        const boxDiv = document.createElement('div');
+        boxDiv.style.border = '1px solid #ccc';
+        boxDiv.style.padding = '10px';
+        boxDiv.style.margin = '10px';
+
+        const quoteP = document.createElement('p');
+        quoteP.textContent = quoteText;
+
+        const authorSpan = document.createElement('span');
+        authorSpan.style.fontStyle = 'italic';
+        authorSpan.textContent = ` - ${author}`;
+
+        const sourceSpan = document.createElement('span');
+        sourceSpan.style.fontSize = '0.8em';
+        sourceSpan.textContent = ` (${source})`;
+
+        quoteP.appendChild(authorSpan);
+        quoteP.appendChild(sourceSpan);
+
+        boxDiv.appendChild(quoteP);
+
+        this.shadowRoot.appendChild(boxDiv);
+
+        showQuoteEffect(this);
+    }
+}
+
+
+function switchImages(galleryElement) {
+    const imgSrcs = galleryElement.getAttribute('img-srcs').split(',');
+    let currentIndex = 0;
+    const imgElement = galleryElement.shadowRoot.querySelector('img');
+
+    setInterval(() => {
+        currentIndex = (currentIndex + 1) % imgSrcs.length;
+        imgElement.src = imgSrcs[currentIndex].trim();
+    }, 3000);
+}
+
+
+function showQuoteEffect(quoteElement) {
+    quoteElement.addEventListener('mouseover', function () {
+        this.shadowRoot.querySelector('div').style.backgroundColor = '#f0f0f0';
+        this.shadowRoot.querySelector('p').style.fontSize = '1.2em';
+    });
+
+    quoteElement.addEventListener('mouseout', function () {
+        this.shadowRoot.querySelector('div').style.backgroundColor = 'transparent';
+        this.shadowRoot.querySelector('p').style.fontSize = '1em';
+    });
+}
+
+customElements.define('image-box', ImageBox);
+customElements.define('quote-box', QuoteBox);
