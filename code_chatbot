@@ -1,0 +1,140 @@
+class Chatbot extends HTMLElement {
+    constructor() {
+        super();
+        this.attachShadow({ mode: 'open' });
+        this.targetNumber;
+        this.apiKey = ' ';
+        this.baseUrl = 'https://api.chatanywhere.tech/v1';
+    }
+
+    connectedCallback() {
+        this.shadowRoot.innerHTML = `
+            <style>
+                chat-bot {
+    display: block;
+    max-width: 600px;
+    margin: 50px auto;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+#chat-window {
+    background-color: #f9f9f9;
+    border: none;
+    padding: 20px;
+    margin-bottom: 0;
+    height: 400px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+#chat-window div {
+    padding: 10px 15px;
+    margin: 5px;
+    border-radius: 15px;
+    max-width: 70%;
+}
+
+#chat-window div:nth-child(odd) {
+    background-color: #e0f7fa;
+    align-self: flex-start;
+}
+
+#chat-window div:nth-child(even) {
+    background-color: #f1f8e9;
+    align-self: flex-end;
+}
+
+input {
+    border: 1px solid #ccc;
+    padding: 10px 15px;
+    border-radius: 20px;
+    flex-grow: 1;
+    margin: 10px;
+    outline: none;
+}
+
+button {
+    background-color: #2196f3;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    margin: 10px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #1976d2;
+}
+
+.input-container {
+    display: flex;
+    align-items: center;
+}    
+            </style>
+            <div id="chat-window"></div>
+            <input type="text" placeholder="输入消息">
+            <button>发送</button>
+        `;
+        this.input = this.shadowRoot.querySelector('input');
+        this.button = this.shadowRoot.querySelector('button');
+        this.chatWindow = this.shadowRoot.getElementById('chat-window');
+        this.button.addEventListener('click', () => this.handleMessage());
+    }
+
+    handleMessage() {
+        const message = this.input.value.trim();
+        if (!message) return;
+
+        const userMessage = document.createElement('div');
+        userMessage.textContent = `你: ${message}`;
+        this.chatWindow.appendChild(userMessage);
+
+        this.sendRequestToOpenAI(message);
+        this.input.value = '';
+    }
+
+    sendRequestToOpenAI(message) {
+        const endpoint = '/chat/completions';
+        const data = {
+            model: 'gpt-3.5-turbo',
+            messages: [
+                { role: 'system', content: 'You are a helpful assistant.' },
+                { role: 'user', content: message }
+            ]
+        };
+
+        fetch(this.baseUrl + endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.apiKey}`
+            },
+            body: JSON.stringify(data)
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(result => {
+                const response = result.choices[0].message.content;
+                const botMessage = document.createElement('div');
+                botMessage.textContent = `机器人: ${response}`;
+                this.chatWindow.appendChild(botMessage);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                const errorMessage = document.createElement('div');
+                errorMessage.textContent = `机器人: 发生错误，请稍后再试。`;
+                this.chatWindow.appendChild(errorMessage);
+            });
+    }
+}
+
+customElements.define('chat-bot', Chatbot);
